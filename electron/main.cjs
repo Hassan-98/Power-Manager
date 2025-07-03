@@ -12,6 +12,23 @@ let tray;
 let powerManager;
 let processMonitor;
 
+// Single instance lock
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, we should focus our window instead
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.setSkipTaskbar(false);
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1024,
@@ -297,6 +314,29 @@ ipcMain.handle('check-and-apply-rules', async () => {
     return { success: true, appliedRule };
   } catch (error) {
     console.error('Error checking and applying rules:', error);
+    throw error;
+  }
+});
+
+// Startup management handlers
+ipcMain.handle('get-startup-enabled', async () => {
+  try {
+    return app.getLoginItemSettings().openAtLogin;
+  } catch (error) {
+    console.error('Error getting startup status:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('set-startup-enabled', async (event, enabled) => {
+  try {
+    app.setLoginItemSettings({
+      openAtLogin: enabled,
+      path: process.execPath
+    });
+    return { success: true, enabled };
+  } catch (error) {
+    console.error('Error setting startup status:', error);
     throw error;
   }
 });

@@ -46,6 +46,10 @@ export interface ElectronAPI {
   updateAppRule: (rule: AppRule) => Promise<AppRule>;
   checkAndApplyRules: () => Promise<{ success: boolean; appliedRule?: AppRule | null }>;
 
+  // Startup Management
+  getStartupEnabled: () => Promise<boolean>;
+  setStartupEnabled: (enabled: boolean) => Promise<{ success: boolean; enabled: boolean }>;
+
   // Utility
   platform: string;
 

@@ -22,6 +22,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateAppRule: (rule) => ipcRenderer.invoke('update-app-rule', rule),
   checkAndApplyRules: () => ipcRenderer.invoke('check-and-apply-rules'),
 
+  // Startup Management
+  getStartupEnabled: () => ipcRenderer.invoke('get-startup-enabled'),
+  setStartupEnabled: (enabled) => ipcRenderer.invoke('set-startup-enabled', enabled),
+
   // Utility
   platform: process.platform,
 

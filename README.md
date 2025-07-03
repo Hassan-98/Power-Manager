@@ -15,6 +15,8 @@ A modern, intelligent Windows power plan management application that automatical
 - **Real-time Process Monitoring**: Continuously monitors running processes and applies rules instantly
 - **Manual Power Plan Control**: Switch between power plans with a single click
 - **System Tray Integration**: Minimizes to system tray for background operation
+- **Single Instance Application**: Prevents multiple instances from running simultaneously
+- **Windows Startup Support**: Optional setting to run PowerManager on Windows startup
 
 ### Smart Rule System
 
@@ -82,9 +84,10 @@ A modern, intelligent Windows power plan management application that automatical
 ### Getting Started
 
 1. **Launch PowerManager** - The app will appear in your system tray
-2. **View Power Plans** - See all available Windows power plans with current status
-3. **Create Rules** - Set up automatic switching based on running applications
-4. **Configure Defaults** - Set default and idle power plans
+2. **Configure Startup** - Optionally enable "Run on Windows Startup" in Global Settings
+3. **View Power Plans** - See all available Windows power plans with current status
+4. **Create Rules** - Set up automatic switching based on running applications
+5. **Configure Defaults** - Set default and idle power plans
 
 ### Creating Application Rules
 
@@ -108,12 +111,14 @@ A modern, intelligent Windows power plan management application that automatical
   - Show PowerManager
   - Refresh Plans
   - Quit Application
+- **Single Instance**: If you try to launch PowerManager while it's already running, it will show the existing window instead of creating a new instance
 
 ### Configuration Options
 
 - **Default Power Plan**: Applied when no application rules match
 - **Idle Power Plan**: Reserved for future idle detection feature
 - **Rule Priority**: Rules are checked in order, first match wins
+- **Windows Startup**: Configure whether PowerManager starts with Windows
 
 ## 🔧 Configuration
 

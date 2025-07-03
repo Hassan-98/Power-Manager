@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 
 interface PowerPlan {
@@ -36,6 +36,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isElectronApp] = useState(isElectron())
+  const [startupEnabled, setStartupEnabled] = useState(false)
 
   // Form states
   const [showAddRule, setShowAddRule] = useState(false)
@@ -49,6 +50,17 @@ function App() {
   useEffect(() => {
     loadData()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadPowerPlans = useCallback(async () => {
+    if (isElectronApp && window.electronAPI) {
+      try {
+        const plans = await window.electronAPI.getPowerPlans();
+        setPowerPlans(plans);
+      } catch (err) {
+        console.error('Failed to load power plans:', err);
+      }
+    }
+  }, [isElectronApp]);
 
   // Listen for power plan changes from the backend
   useEffect(() => {
@@ -85,18 +97,7 @@ function App() {
         window.electronAPI.removeAllListeners('refresh-power-plans');
       };
     }
-  }, [isElectronApp, powerPlans]); // Include powerPlans in dependencies for rule applied messages
-
-  const loadPowerPlans = async () => {
-    if (isElectronApp && window.electronAPI) {
-      try {
-        const plans = await window.electronAPI.getPowerPlans();
-        setPowerPlans(plans);
-      } catch (err) {
-        console.error('Failed to load power plans:', err);
-      }
-    }
-  };
+  }, [isElectronApp, powerPlans, loadPowerPlans]); // Include loadPowerPlans in dependencies
 
   const loadData = async () => {
     try {
@@ -104,10 +105,11 @@ function App() {
       setError(null)
 
       if (isElectronApp && window.electronAPI) {
-        const [plans, cfg, processes] = await Promise.all([
+        const [plans, cfg, processes, startup] = await Promise.all([
           window.electronAPI.getPowerPlans(),
           window.electronAPI.getConfig(),
-          window.electronAPI.getProcessNames()
+          window.electronAPI.getProcessNames(),
+          window.electronAPI.getStartupEnabled()
         ])
         console.log(plans);
 
@@ -115,6 +117,7 @@ function App() {
         setConfig(cfg)
         setAppRules(cfg.app_rules)
         setProcessNames(processes.sort())
+        setStartupEnabled(startup)
       } else {
         // Fallback mock data for development
         const mockPlans = [
@@ -126,6 +129,7 @@ function App() {
 
         setPowerPlans(mockPlans)
         setProcessNames(mockProcesses)
+        setStartupEnabled(false)
       }
     } catch (err) {
       setError(err as string)
@@ -263,6 +267,25 @@ function App() {
     }
   }
 
+  const handleToggleStartup = async () => {
+    try {
+      if (isElectronApp && window.electronAPI) {
+        const newStatus = !startupEnabled
+        const result = await window.electronAPI.setStartupEnabled(newStatus)
+        if (result.success) {
+          setStartupEnabled(result.enabled)
+          setError(`Startup ${result.enabled ? 'enabled' : 'disabled'} successfully`)
+          // Auto-clear the message after 3 seconds
+          setTimeout(() => setError(null), 3000)
+        }
+      } else {
+        setError('Startup setting only available in Electron mode')
+      }
+    } catch (err) {
+      setError(err as string)
+    }
+  }
+
   if (loading) {
     return (
       <div className="app">
@@ -318,6 +341,24 @@ function App() {
         <section className="section">
           <h2>Global Settings</h2>
           <div className="settings-grid">
+            <div className="setting-item">
+              <label>Run on Windows Startup:</label>
+              <div className="startup-control">
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={startupEnabled}
+                    onChange={handleToggleStartup}
+                    disabled={!isElectronApp}
+                  />
+                  <span className="slider"></span>
+                </label>
+                <span className="startup-status">
+                  {startupEnabled ? 'Enabled' : 'Disabled'}
+                  {!isElectronApp && ' (Demo Mode)'}
+                </span>
+              </div>
+            </div>
             <div className="setting-item">
               <label>Power Plan When Idle:</label>
               <select
