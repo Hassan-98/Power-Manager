@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
 import './App.css'
 
 interface PowerPlan {
@@ -27,14 +28,11 @@ const isElectron = () => {
 }
 
 function App() {
-  console.log("asldhaslkd");
-
   const [powerPlans, setPowerPlans] = useState<PowerPlan[]>([])
   const [appRules, setAppRules] = useState<AppRule[]>([])
   const [processNames, setProcessNames] = useState<string[]>([])
   const [config, setConfig] = useState<PowerManagerConfig>({ app_rules: [] })
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [isElectronApp] = useState(isElectron())
   const [startupEnabled, setStartupEnabled] = useState(false)
 
@@ -75,9 +73,8 @@ function App() {
       // Listen for rule applications
       const handleRuleApplied = (_event: Event, rule: AppRule) => {
         console.log('Rule applied:', rule);
-        setError(`Rule applied: ${rule.app_name} activated ${powerPlans.find(p => p.guid === rule.power_plan_guid)?.name || 'unknown power plan'}`);
-        // Auto-clear the message after 3 seconds
-        setTimeout(() => setError(null), 3000);
+        const planName = powerPlans.find(p => p.guid === rule.power_plan_guid)?.name || 'unknown power plan';
+        toast.success(`Rule applied: ${rule.app_name} activated ${planName}`);
       };
 
       // Listen for refresh requests from tray
@@ -102,7 +99,6 @@ function App() {
   const loadData = async () => {
     try {
       setLoading(true)
-      setError(null)
 
       if (isElectronApp && window.electronAPI) {
         const [plans, cfg, processes, startup] = await Promise.all([
@@ -111,7 +107,6 @@ function App() {
           window.electronAPI.getProcessNames(),
           window.electronAPI.getStartupEnabled()
         ])
-        console.log(plans);
 
         setPowerPlans(plans)
         setConfig(cfg)
@@ -132,7 +127,7 @@ function App() {
         setStartupEnabled(false)
       }
     } catch (err) {
-      setError(err as string)
+      toast.error(`Failed to load data: ${err}`)
       console.error('Failed to load data:', err)
     } finally {
       setLoading(false)
@@ -144,17 +139,19 @@ function App() {
       if (isElectronApp && window.electronAPI) {
         await window.electronAPI.setActivePowerPlan(planGuid)
         await loadData()
+        const planName = powerPlans.find(p => p.guid === planGuid)?.name
+        toast.success(`Power plan switched to ${planName}`)
       } else {
-        alert(`Demo Mode: Would set active power plan to ${powerPlans.find(p => p.guid === planGuid)?.name}`)
+        toast.info(`Demo Mode: Would set active power plan to ${powerPlans.find(p => p.guid === planGuid)?.name}`)
       }
     } catch (err) {
-      setError(err as string)
+      toast.error(`Failed to set power plan: ${err}`)
     }
   }
 
   const handleAddRule = async () => {
     if (!newRule.app_name || !newRule.power_plan_guid) {
-      setError('Please fill in all required fields')
+      toast.error('Please fill in all required fields')
       return
     }
 
@@ -170,16 +167,18 @@ function App() {
       if (isElectronApp && window.electronAPI) {
         await window.electronAPI.addAppRule(rule)
         await loadData()
+        toast.success(`Rule added for ${rule.app_name}`)
       } else {
         // Demo mode
         setAppRules([...appRules, rule])
         setConfig(prev => ({ ...prev, app_rules: [...prev.app_rules, rule] }))
+        toast.success(`Demo: Rule added for ${rule.app_name}`)
       }
 
       setShowAddRule(false)
       setNewRule({ app_name: '', executable_path: '', power_plan_guid: '', enabled: true })
     } catch (err) {
-      setError(err as string)
+      toast.error(`Failed to add rule: ${err}`)
     }
   }
 
@@ -188,14 +187,16 @@ function App() {
       if (isElectronApp && window.electronAPI) {
         await window.electronAPI.removeAppRule(ruleId)
         await loadData()
+        toast.success('Rule removed successfully')
       } else {
         // Demo mode
         const updatedRules = appRules.filter(rule => rule.id !== ruleId)
         setAppRules(updatedRules)
         setConfig(prev => ({ ...prev, app_rules: updatedRules }))
+        toast.success('Demo: Rule removed')
       }
     } catch (err) {
-      setError(err as string)
+      toast.error(`Failed to remove rule: ${err}`)
     }
   }
 
@@ -206,14 +207,16 @@ function App() {
       if (isElectronApp && window.electronAPI) {
         await window.electronAPI.updateAppRule(updatedRule)
         await loadData()
+        toast.success(`Rule ${updatedRule.enabled ? 'enabled' : 'disabled'} for ${rule.app_name}`)
       } else {
         // Demo mode
         const updatedRules = appRules.map(r => r.id === rule.id ? updatedRule : r)
         setAppRules(updatedRules)
         setConfig(prev => ({ ...prev, app_rules: updatedRules }))
+        toast.success(`Demo: Rule ${updatedRule.enabled ? 'enabled' : 'disabled'} for ${rule.app_name}`)
       }
     } catch (err) {
-      setError(err as string)
+      toast.error(`Failed to toggle rule: ${err}`)
     }
   }
 
@@ -224,12 +227,14 @@ function App() {
       if (isElectronApp && window.electronAPI) {
         await window.electronAPI.updateConfig(updatedConfig)
         await loadData()
+        toast.success('Idle power plan updated')
       } else {
         // Demo mode
         setConfig(updatedConfig)
+        toast.success('Demo: Idle power plan updated')
       }
     } catch (err) {
-      setError(err as string)
+      toast.error(`Failed to update idle power plan: ${err}`)
     }
   }
 
@@ -240,12 +245,14 @@ function App() {
       if (isElectronApp && window.electronAPI) {
         await window.electronAPI.updateConfig(updatedConfig)
         await loadData()
+        toast.success('Default power plan updated')
       } else {
         // Demo mode
         setConfig(updatedConfig)
+        toast.success('Demo: Default power plan updated')
       }
     } catch (err) {
-      setError(err as string)
+      toast.error(`Failed to update default power plan: ${err}`)
     }
   }
 
@@ -254,16 +261,16 @@ function App() {
       if (isElectronApp && window.electronAPI) {
         const result = await window.electronAPI.checkAndApplyRules()
         if (result.success) {
-          setError(result.appliedRule ?
+          toast.info(result.appliedRule ?
             `Rule applied: ${result.appliedRule.app_name} -> Power plan changed` :
             'No matching rules found, default plan applied (if configured)'
           )
         }
       } else {
-        setError('Rule testing only available in Electron mode')
+        toast.warning('Rule testing only available in Electron mode')
       }
     } catch (err) {
-      setError(err as string)
+      toast.error(`Failed to test rules: ${err}`)
     }
   }
 
@@ -274,15 +281,13 @@ function App() {
         const result = await window.electronAPI.setStartupEnabled(newStatus)
         if (result.success) {
           setStartupEnabled(result.enabled)
-          setError(`Startup ${result.enabled ? 'enabled' : 'disabled'} successfully`)
-          // Auto-clear the message after 3 seconds
-          setTimeout(() => setError(null), 3000)
+          toast.success(`Startup ${result.enabled ? 'enabled' : 'disabled'} successfully`)
         }
       } else {
-        setError('Startup setting only available in Electron mode')
+        toast.warning('Startup setting only available in Electron mode')
       }
     } catch (err) {
-      setError(err as string)
+      toast.error(`Failed to toggle startup setting: ${err}`)
     }
   }
 
@@ -305,13 +310,6 @@ function App() {
           </div>
         )}
       </header>
-
-      {error && (
-        <div className="error">
-          <strong>Error:</strong> {error}
-          <button onClick={() => setError(null)}>×</button>
-        </div>
-      )}
 
       <div className="main-content">
         {/* Current Power Plans */}

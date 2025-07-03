@@ -1,11 +1,13 @@
 {
   "name": "powermanager",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
+  "description": "A simple power management application for Windows that allows you to switch power plans based on running applications.",
+  "license": "MIT",
   "type": "module",
   "main": "electron/main.cjs",
   "author": {
-    "name": "Hassan Ali Mohamed",
+    "name": "Hassan Ali",
     "email": "7assan.3li1998@gmail.com",
     "url": "https://hassanali.tk"
   },
@@ -24,6 +26,7 @@
     "node-powershell": "^5.0.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "sonner": "^2.0.5",
     "systeminformation": "^5.27.7"
   },
   "devDependencies": {
